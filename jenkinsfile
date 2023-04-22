@@ -9,7 +9,6 @@ node {
         stage('Build docker') {
             echo "Docker Image Tag Name: ${dockerImageTag}"
             bat"mvn clean package -DskipTests"
-            // sh "ls"
             dockerImage = docker.build("springboot-deploy:${env.BUILD_NUMBER}")
         }
         stage('Deploy docker'){
