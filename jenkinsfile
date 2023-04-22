@@ -14,11 +14,8 @@ node {
         }
         stage('Deploy docker'){
             echo "Docker Image Tag Name: ${dockerImageTag}"
-            // bat '''
-            //     docker stop springboot-deploy || echo Docker stop failed, but continuing...
-            //     docker rm springboot-deploy || echo Docker rm failed, but continuing...
-            // '''
-            // bat "docker run --name springboot-deploy -d -p8083:8083 springboot-deploy:${env.BUILD_NUMBER}"
+            bat '(docker stop springboot-deploy || exit /B 0) && (docker rm springboot-deploy || exit /B 0)'
+            bat "docker run --name springboot-deploy -d -p8083:8083 springboot-deploy:${env.BUILD_NUMBER}"
         }
         stage('Integration test'){
             bat "mvn clean test"
