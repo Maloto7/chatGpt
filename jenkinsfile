@@ -14,9 +14,9 @@ node {
         }
         stage('Deploy docker'){
             echo "Docker Image Tag Name: ${dockerImageTag}"
-            bat '''
+            bat "
                 FOR /F %%i IN ('docker ps -a --filter "name=test" --format "{{.Names}}"') DO IF "%%i"=="test" (docker stop test && docker rm test) ELSE (ECHO "No existe el contenedor 'test'")
-            '''
+            "
             bat "docker run --name springboot-deploy -d -p8083:8083 springboot-deploy:${env.BUILD_NUMBER}"
         }
         stage('Integration test'){
