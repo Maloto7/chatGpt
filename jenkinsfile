@@ -23,11 +23,13 @@ node {
             allure includeProperties: false, jdk: '', reportBuildPolicy: 'ALWAYS', results: [[path: 'target/allure-results']]
         }
         stage('Send Email') {
-            emailext to: 'agustin.encora@gmail.com',
+            emailext(
+                 to: 'agustin.encora@gmail.com',
                 subject: "Allure Report: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                 body: "Please find the Allure report attached.",
                 attachmentsPattern: '**/allure-report/**',
                 mimeType: 'application/zip'
+            )
         }
     }catch(e){
 //      currentBuild.result = "FAILED"
