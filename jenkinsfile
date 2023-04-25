@@ -40,4 +40,10 @@ node {
                 mimeType: 'application/zip'
             )
         }
+    }catch(e){
+//      currentBuild.result = "FAILED"
+        throw e
+    }finally{
+//      notifyBuild(currentBuild.result)
+    }
 }
