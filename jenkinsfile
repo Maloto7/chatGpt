@@ -24,7 +24,7 @@ node {
         }
         stage('Allure HTML Report') {
             try {
-                sh 'allure generate --clean --output allure-html target/allure-results/html'
+                bat 'allure generate --clean --output allure-html target/allure-results/html'
                 step([$class: 'ArtifactArchiver', artifacts: 'allure-html/*', fingerprint: true, onlyIfSuccessful: true])
             } catch (Exception e) {
                 echo "Error al generar el Allure HTML Report: ${e}"
