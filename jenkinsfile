@@ -24,7 +24,7 @@ node {
         }
         stage('Allure HTML Report') {
             try {
-                bat 'allure generate --clean --output allure-html target/allure-results/html'
+                bat 'allure generate --clean --output allure-html target/allure-results/'
                 step([$class: 'ArtifactArchiver', artifacts: 'allure-html/*', fingerprint: true, onlyIfSuccessful: true])
             } catch (Exception e) {
                 echo "Error al generar el Allure HTML Report: ${e}"
@@ -36,7 +36,7 @@ node {
                 to: 'agustin.encora@gmail.com',
                 subject: "Allure Report: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                 body: 'Please find the Allure report attached.',
-                attachmentsPattern: 'target/allure-results',
+                attachmentsPattern: 'allure-html/',
                 mimeType: 'application/zip'
             )
         }
