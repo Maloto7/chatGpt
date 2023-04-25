@@ -25,7 +25,7 @@ node {
         stage('Allure HTML Report') {
             try {
                 bat 'allure generate --clean --output allure-html target\\allure-results\\'
-                bat 'powershell.exe -command "Compress-Archive -Path allure-html\\* -DestinationPath allure-report.zip"'
+                bat 'powershell.exe -command "Compress-Archive -Path allure-html\\* -DestinationPath allure-html\\allure-report.zip"'
                 step([$class: 'ArtifactArchiver', artifacts: 'allure-report.zip', fingerprint: true, onlyIfSuccessful: true])
             } catch (Exception e) {
                 echo "Error al generar el Allure HTML Report: ${e}"
@@ -38,7 +38,7 @@ node {
                 to: 'agustin.encora@gmail.com',
                 subject: "Allure Report: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                 body: 'Please find the Allure report attached.',
-                attachmentsPattern: 'allure-html/',
+                attachmentsPattern: 'allure-html/allure-report.zip',
                 mimeType: 'application/zip'
             )
         }
