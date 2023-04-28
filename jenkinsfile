@@ -1,50 +1,52 @@
-node {
-    def dockerImageTag = "springboot-deploy${env.BUILD_NUMBER}"
-    try{
-    //notifyBuild('STARTED')
-        stage('Clone Repo') {
-            checkout scm
-            echo "Cloning branch: ${env.BRANCH_NAME}"
-        }
-        stage('Build docker') {
-            echo "Docker Image Tag Name: ${dockerImageTag}"
-            bat"mvn clean package -DskipTests"
-            dockerImage = docker.build("springboot-deploy:${env.BUILD_NUMBER}")
-        }
-        stage('Deploy docker'){
-            echo "Docker Image Tag Name: ${dockerImageTag}"
-            bat '(docker stop springboot-deploy || exit /B 0) && (docker rm springboot-deploy || exit /B 0)'
-            bat "docker run --name springboot-deploy -d -p8083:8083 springboot-deploy:${env.BUILD_NUMBER}"
-        }
-        stage('Integration test'){
-            bat "mvn clean test"
-        }
-        stage('Report'){
-            allure includeProperties: false, jdk: '', reportBuildPolicy: 'ALWAYS', results: [[path: 'target/allure-results']]
-        }
-        stage('Allure HTML Report') {
-            try {
-                bat 'allure generate --clean --output allure-html target\\allure-results\\'
-                bat 'powershell.exe -command "Compress-Archive -Path allure-html\\* -DestinationPath allure-html\\allure-report.zip"'
-                step([$class: 'ArtifactArchiver', artifacts: 'allure-report.zip', fingerprint: true, onlyIfSuccessful: true])
-            } catch (Exception e) {
-                echo "Error al generar el Allure HTML Report: ${e}"
-                currentBuild.result = 'FAILURE'
-            }
-        }
+node('windows') {
+    def dockerImageTag
+    def currentBranch
 
-        stage('Send Email') {
-            emailext(
-                to: 'agustin.encora@gmail.com',
-                subject: "Allure Report: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: 'Please find the Allure report attached.',
-                attachmentsPattern: 'allure-html/allure-report.zip'
-            )
-        }
-    }catch(e){
-//      currentBuild.result = "FAILED"
-        throw e
-    }finally{
-//      notifyBuild(currentBuild.result)
+    stage('Clone Repo') {
+        checkout scm
+        currentBranch = env.BRANCH_NAME
+        echo "Cloning branch: ${currentBranch}"
+    }
+
+    stage('Build docker') {
+        dockerImageTag = "springboot-deploy:${env.BUILD_NUMBER}"
+        echo "Building Docker image with tag: ${dockerImageTag}"
+        bat 'mvn clean package -DskipTests'
+        bat "docker build -t ${dockerImageTag} ."
+    }
+
+    stage('Deploy docker') {
+        bat "docker stop ${dockerImageTag} || true"
+        bat "docker rm ${dockerImageTag} || true"
+        bat "docker run -d --name ${dockerImageTag} -p 8083:8083 ${dockerImageTag}"
+    }
+
+    stage('Integration test') {
+        bat 'mvn clean verify -DskipUTs'
+    }
+
+    stage('Report') {
+        allure([
+            includeProperties: true,
+            jdk: '',
+            properties: [],
+            reportBuildPolicy: 'ALWAYS',
+            results: [[path: 'target/allure-results']]
+        ])
+    }
+
+    stage('Allure HTML Report') {
+        bat "allure generate target/allure-results --clean -o allure-html"
+        bat "tar -czvf allure-html.zip allure-html"
+        archiveArtifacts artifacts: 'allure-html.zip', onlyIfSuccessful: true
+    }
+
+    stage('Send Email') {
+        emailext (
+            to: 'agustin.encora@gmail.com',
+            subject: "${env.JOB_NAME} Build #${env.BUILD_NUMBER}",
+            body: 'Please find the Allure HTML report attached.',
+            attachmentsPattern: '**/allure-html.zip'
+        )
     }
 }
