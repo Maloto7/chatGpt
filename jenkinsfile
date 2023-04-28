@@ -1,35 +1,35 @@
-def dockerImageTag = "springboot-deploy:${env.BUILD_NUMBER}"
-
 node {
+    def dockerImageTag = "springboot-deploy${env.BUILD_NUMBER}"
+    //notifyBuild('STARTED')
     stage('Clone Repo') {
         checkout scm
         echo "Cloning branch: ${env.BRANCH_NAME}"
     }
-
     stage('Build docker') {
         echo "Docker Image Tag Name: ${dockerImageTag}"
-        bat "mvn clean package -DskipTests"
-        def dockerImage = docker.build("${dockerImageTag}")
+        bat"mvn clean package -DskipTests"
+        dockerImage = docker.build("springboot-deploy:${env.BUILD_NUMBER}")
     }
-
-    stage('Deploy docker') {
+    stage('Deploy docker'){
         echo "Docker Image Tag Name: ${dockerImageTag}"
         bat '(docker stop springboot-deploy || exit /B 0) && (docker rm springboot-deploy || exit /B 0)'
-        bat "docker run --name springboot-deploy -d -p8083:8083 ${dockerImageTag}"
+        bat "docker run --name springboot-deploy -d -p8083:8083 springboot-deploy:${env.BUILD_NUMBER}"
     }
-
-    stage('Integration test') {
+    stage('Integration test'){
         bat "mvn clean test"
     }
-
-    stage('Report') {
-        allure includeProperties: true, jdk: '', reportBuildPolicy: 'ALWAYS', results: [[path: 'target/allure-results']]
+    stage('Report'){
+        allure includeProperties: false, jdk: '', reportBuildPolicy: 'ALWAYS', results: [[path: 'target/allure-results']]
     }
-
     stage('Allure HTML Report') {
-        bat 'allure generate --clean --output allure-html target\\allure-results\\'
-        bat 'powershell.exe -command "Compress-Archive -Path allure-html -DestinationPath allure-html\\allure-report.tar.gz" -CompressionLevel Optimal'
-        step([$class: 'ArtifactArchiver', artifacts: 'allure-html/allure-report.tar.gz, fingerprint: true, onlyIfSuccessful: true])
+        try {
+            bat 'allure generate --clean --output allure-html target\\allure-results\\'
+            bat 'powershell.exe -command "Compress-Archive -Path allure-html\\* -DestinationPath allure-html\\allure-report.tar.gz" -CompressionLevel Optimal'
+            step([$class: 'ArtifactArchiver', artifacts: 'allure-report.tar.gz', fingerprint: true, onlyIfSuccessful: true])
+        } catch (Exception e) {
+            echo "Error al generar el Allure HTML Report: ${e}"
+            currentBuild.result = 'FAILURE'
+        }
     }
 
     stage('Send Email') {
