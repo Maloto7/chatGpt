@@ -28,8 +28,8 @@ node {
 
     stage('Allure HTML Report') {
         bat 'allure generate --clean --output allure-html target\\allure-results\\'
-        bat 'powershell.exe -command "Compress-Archive -Path allure-html -DestinationPath allure-html\\allure-report.zip"'
-        step([$class: 'ArtifactArchiver', artifacts: 'allure-html/allure-report.zip', fingerprint: true, onlyIfSuccessful: true])
+        bat 'powershell.exe -command "Compress-Archive -Path allure-html -DestinationPath allure-html\\allure-report.tar.gz" -CompressionLevel Optimal'
+        step([$class: 'ArtifactArchiver', artifacts: 'allure-html/allure-report.tar.gz, fingerprint: true, onlyIfSuccessful: true])
     }
 
     stage('Send Email') {
@@ -37,7 +37,7 @@ node {
             to: 'agustin.encora@gmail.com',
             subject: "Allure Report: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
             body: 'Please find the Allure report attached.',
-            attachmentsPattern: 'allure-html/allure-report.zip'
+            attachmentsPattern: 'allure-html/allure-report.tar.gz'
         )
     }
 }
